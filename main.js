@@ -2,13 +2,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 
-// Scene setup
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x333333);
 
-// Replace perspective camera with orthographic camera
+// orthographic camera because we are looking at a 3d shape with regular cubes
 const aspect = window.innerWidth / window.innerHeight;
-const frustumSize = 10;
+const frustumSize = 15;
 const camera = new THREE.OrthographicCamera(
     frustumSize * aspect / -2,
     frustumSize * aspect / 2,
@@ -18,7 +17,7 @@ const camera = new THREE.OrthographicCamera(
     1000
 );
 camera.position.set(0, 5, 10);
-camera.lookAt(1.5, 1.5, 1); // Look at the center of the shape
+camera.lookAt(1.5, 1.5, 1); // Look at centre
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -27,10 +26,10 @@ document.body.appendChild(renderer.domElement);
 // Controls for rotating the view
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.1;
-controls.autoRotate = true; // Enable auto-rotation
-controls.autoRotateSpeed = 1.0; // Rotation speed (default is 2.0)
-controls.target.set(1.5, 1.5, 1); // Set orbital center to middle of shape
+controls.dampingFactor = 1;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.3;
+controls.target.set(1.5, 1.5, 1);
 
 // Holographic material for cubes
 const cubeMaterial = new THREE.MeshStandardMaterial({
@@ -54,7 +53,7 @@ const shapeData = [
     [0, 0, 2], [0, 1, 2], [0, 2, 2], [0, 3, 2],
   ];
 
-// Remove custom shader definitions and replace holographic material with a glowing material
+// inner material is a physical material with a glow
 const innerMaterial = new THREE.MeshPhysicalMaterial({
     color: 0x00ffff,
     emissive: 0x004040,
@@ -225,24 +224,24 @@ function animate() {
             if (nextCube) {
                 // Use different materials based on whether it's an original or filling cube
                 const useInnerMaterial = nextCube.isOriginal ? innerMaterial : new THREE.MeshPhysicalMaterial({
-                    color: 0xff0000,  // Changed to red
-                    emissive: 0x330000,  // Red glow
+                    color: 0xff0000,  // red cubes are fillers
+                    emissive: 0x330000,  // red glow
                     metalness: 0.9,
                     roughness: 0.1,
-                    transmission: 0.4,  // Increased transmission
+                    transmission: 0.4,
                     transparent: true,
-                    opacity: 0.7  // Increased opacity
+                    opacity: 0.7
                 });
                 
                 const useGlassMaterial = nextCube.isOriginal ? glassMaterial : new THREE.MeshPhysicalMaterial({
-                    color: 0xff4444,  // Light red
+                    color: 0xff4444,
                     metalness: 0.0,
                     roughness: 0.1,
                     transmission: 0.6,
                     transparent: true,
-                    opacity: 0.4,  // Increased opacity
+                    opacity: 0.4,
                     envMap: envMap,
-                    envMapIntensity: 1.0,  // Increased intensity
+                    envMapIntensity: 1.0,
                     clearcoat: 1.0,
                     clearcoatRoughness: 0.1
                 });
@@ -303,7 +302,7 @@ function animate() {
         // Calculate total count once
         totalCount = fillingCubes.length;
         
-        // Initialize first layer
+        // Initialise first layer
         if (sortedLayers.length > 0) {
             const [y, cubes] = sortedLayers[0];
             currentLayer = {
@@ -347,7 +346,7 @@ function animate() {
                 const scale = progress < 1 ? progress : 1;
                 cube.group.scale.setScalar(scale);
             } else if (!cube.isOriginal && currentLayer && 
-                      cube.targetPos.y === currentLayer.y) {  // Changed from z to y
+                      cube.targetPos.y === currentLayer.y) {
                 // Second phase animation for current layer
                 const elapsed = time - cube.secondPhaseStart;
                 const progress = Math.min(elapsed / animationDuration, 1);
@@ -410,7 +409,7 @@ function animate() {
         }
     });
 
-    // Existing animation code
+    // Pulse effect for inner material
     const pulseIntensity = (Math.sin(time * 0.002) * 0.5 + 0.5) * 0.2;
     scene.traverse((object) => {
         if (object.material === innerMaterial) {
@@ -418,6 +417,7 @@ function animate() {
         }
     });
     
+    // Pulse effect for outer material
     scene.children.forEach(child => {
         if (child.type === 'PointLight') {
             child.position.y = 3 + Math.sin(time * 0.001 + child.position.x) * 0.5;
